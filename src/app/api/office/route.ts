@@ -5,7 +5,7 @@ import { join } from "path";
 export const dynamic = "force-dynamic";
 
 const AGENT_CONFIG = {
-  main: { emoji: "🦞", color: "#ff6b35", name: "Tenacitas", role: "Boss" },
+  main: { emoji: "🦝", color: "#ff6b35", name: "Bort", role: "Boss" },
   academic: {
     emoji: "🎓",
     color: "#4ade80",
@@ -189,7 +189,18 @@ export async function GET() {
     // Try gateway first, fallback to file-based
     const gatewayStatus = await getAgentStatusFromGateway();
 
-    const agents = config.agents.list.map((agent: any) => {
+    // Support both explicit list and implicit single-agent setups
+    const agentList: any[] = config.agents?.list || [];
+    if (agentList.length === 0) {
+      const mainWorkspace = (process.env.OPENCLAW_DIR || "/root/.openclaw") + "/workspace";
+      agentList.push({
+        id: "main",
+        name: process.env.NEXT_PUBLIC_AGENT_NAME || "Main",
+        workspace: mainWorkspace,
+      });
+    }
+
+    const agents = agentList.map((agent: any) => {
       const agentInfo = AGENT_CONFIG[agent.id as keyof typeof AGENT_CONFIG] || {
         emoji: "🤖",
         color: "#666",

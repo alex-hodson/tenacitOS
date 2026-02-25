@@ -53,3 +53,6 @@ next-env.d.ts
 
 # backup files
 *.bak
+.env.local
+data/*.db-shm
+data/*.db-wal

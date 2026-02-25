@@ -47,7 +47,7 @@ export function TopBar() {
       >
         {/* Left: Logo & Title */}
         <div className="flex items-center gap-3">
-          <span style={{ fontSize: "20px" }}>🦞</span>
+          <span style={{ fontSize: "20px" }}>🦝</span>
           <h1
             style={{
               fontFamily: "var(--font-heading)",

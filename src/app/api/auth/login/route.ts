@@ -90,19 +90,19 @@ export async function POST(request: NextRequest) {
   if (password === process.env.ADMIN_PASSWORD) {
     clearAttempts(ip); // Reset on success
 
-    const response = NextResponse.json({ success: true });
+    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+    const cookieValue = encodeURIComponent(process.env.AUTH_SECRET!);
+    const useSecure = process.env.FORCE_HTTPS_COOKIE === "true";
+    const cookieStr = `mc_auth=${cookieValue}; Path=/; Expires=${expires}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${useSecure ? "; Secure" : ""}`;
 
-    // Set auth cookie (7 days expiry)
-    // secure=true in production (HTTPS), false in dev (HTTP localhost)
-    response.cookies.set("mc_auth", process.env.AUTH_SECRET!, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Set-Cookie": cookieStr,
+      },
     });
-
-    return response;
   }
 
   // Record failed attempt

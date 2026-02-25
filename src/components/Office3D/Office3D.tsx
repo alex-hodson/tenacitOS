@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky, Environment } from '@react-three/drei';
 import { Suspense, useState } from 'react';
 import { Vector3 } from 'three';
-import { AGENTS } from './agentsConfig';
+import { AGENTS, DEFAULT_AGENT_STATE } from './agentsConfig';
 import type { AgentState } from './agentsConfig';
 import AgentDesk from './AgentDesk';
 import Floor from './Floor';
@@ -25,15 +25,12 @@ export default function Office3D() {
   const [controlMode, setControlMode] = useState<'orbit' | 'fps'>('orbit');
   const [avatarPositions, setAvatarPositions] = useState<Map<string, any>>(new Map());
   
-  // Mock data - TODO: Replace with real API data
-  const [agentStates] = useState<Record<string, AgentState>>({
-    main: { id: 'main', status: 'working', currentTask: 'Procesando emails', model: 'opus', tokensPerHour: 15000, tasksInQueue: 3, uptime: 12 },
-    academic: { id: 'academic', status: 'idle', model: 'sonnet', tokensPerHour: 0, tasksInQueue: 0, uptime: 8 },
-    studio: { id: 'studio', status: 'thinking', currentTask: 'Generando guión YouTube', model: 'opus', tokensPerHour: 8000, tasksInQueue: 1, uptime: 5 },
-    linkedin: { id: 'linkedin', status: 'working', currentTask: 'Redactando post', model: 'sonnet', tokensPerHour: 5000, tasksInQueue: 2, uptime: 10 },
-    social: { id: 'social', status: 'idle', model: 'sonnet', tokensPerHour: 0, tasksInQueue: 0, uptime: 7 },
-    infra: { id: 'infra', status: 'error', currentTask: 'Failed deployment', model: 'haiku', tokensPerHour: 1000, tasksInQueue: 0, uptime: 15 },
-  });
+  // Agent states — initialized with defaults for all configured agents
+  const [agentStates] = useState<Record<string, AgentState>>(
+    Object.fromEntries(
+      AGENTS.map(a => [a.id, { ...DEFAULT_AGENT_STATE, id: a.id, status: 'working', currentTask: 'Running tasks...', model: 'opus' }])
+    )
+  );
 
   const handleDeskClick = (agentId: string) => {
     setSelectedAgent(agentId);
@@ -115,7 +112,7 @@ export default function Office3D() {
             <AgentDesk
               key={agent.id}
               agent={agent}
-              state={agentStates[agent.id]}
+              state={agentStates[agent.id] || { ...DEFAULT_AGENT_STATE, id: agent.id }}
               onClick={() => handleDeskClick(agent.id)}
               isSelected={selectedAgent === agent.id}
             />
@@ -126,7 +123,7 @@ export default function Office3D() {
             <MovingAvatar
               key={`avatar-${agent.id}`}
               agent={agent}
-              state={agentStates[agent.id]}
+              state={agentStates[agent.id] || { ...DEFAULT_AGENT_STATE, id: agent.id }}
               officeBounds={{ minX: -8, maxX: 8, minZ: -7, maxZ: 7 }}
               obstacles={obstacles}
               otherAvatarPositions={avatarPositions}
@@ -178,7 +175,7 @@ export default function Office3D() {
       {selectedAgent && (
         <AgentPanel
           agent={AGENTS.find(a => a.id === selectedAgent)!}
-          state={agentStates[selectedAgent]}
+          state={agentStates[selectedAgent] || { ...DEFAULT_AGENT_STATE, id: selectedAgent }}
           onClose={handleClosePanel}
         />
       )}
@@ -285,16 +282,16 @@ export default function Office3D() {
           <p><strong>Mode: {controlMode === 'orbit' ? '🖱️ Orbit' : '🎮 FPS'}</strong></p>
           {controlMode === 'orbit' ? (
             <>
-              <p>🖱️ Mouse: Rotar vista</p>
+              <p>🖱️ Mouse: Rotate view</p>
               <p>🔄 Scroll: Zoom</p>
-              <p>👆 Click: Seleccionar</p>
+              <p>👆 Click: Select</p>
             </>
           ) : (
             <>
               <p>Click to lock cursor</p>
-              <p>WASD/Arrows: Mover</p>
-              <p>Space: Subir | Shift: Bajar</p>
-              <p>Mouse: Mirar | ESC: Unlock</p>
+              <p>WASD/Arrows: Move</p>
+              <p>Space: Up | Shift: Down</p>
+              <p>Mouse: Look | ESC: Unlock</p>
             </>
           )}
         </div>
@@ -308,7 +305,7 @@ export default function Office3D() {
 
       {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-black/70 text-white p-4 rounded-lg backdrop-blur-sm">
-        <h3 className="text-sm font-bold mb-2">Estados</h3>
+        <h3 className="text-sm font-bold mb-2">Status</h3>
         <div className="text-xs space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
