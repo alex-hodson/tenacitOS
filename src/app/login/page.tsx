@@ -127,7 +127,7 @@ function LoginForm() {
         className="text-center text-xs mt-6"
         style={{ color: 'var(--text-muted)' }}
       >
-        Tenacitas Agent Dashboard
+        Bort Agent Dashboard
       </p>
     </div>
   );
@@ -136,7 +136,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 -ml-64"
+      className="min-h-screen flex items-center justify-center p-4 md:-ml-64"
       style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="w-full max-w-md">

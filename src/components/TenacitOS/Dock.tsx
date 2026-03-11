@@ -1,12 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
   Monitor,
   FolderOpen,
-  Brain,
   Bot,
   Building2,
   Activity,
@@ -15,13 +15,16 @@ import {
   DollarSign,
   Settings,
   History,
+  Users,
+  GraduationCap,
+  ExternalLink,
+  MapPin,
 } from "lucide-react";
 
 const dockItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/system", label: "System Monitor", icon: Monitor },
   { href: "/files", label: "Files", icon: FolderOpen },
-  { href: "/memory", label: "Memory", icon: Brain },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/office", label: "Office", icon: Building2 },
   { href: "/activity", label: "Activity", icon: Activity },
@@ -32,8 +35,20 @@ const dockItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+const projectItems = [
+  { port: 3100, label: "CRM", icon: Users },
+  { port: 5174, label: "SAT Prep", icon: GraduationCap },
+  { url: "https://funeralpriceguide.com", label: "FPG", icon: ExternalLink },
+  { port: 3200, label: "Nebby", icon: MapPin },
+];
+
 export function Dock() {
   const pathname = usePathname();
+  const [hostname, setHostname] = useState("localhost");
+
+  useEffect(() => {
+    setHostname(window.location.hostname);
+  }, []);
 
   return (
     <aside
@@ -52,6 +67,7 @@ export function Dock() {
         padding: "12px 6px",
         gap: "4px",
         zIndex: 50,
+        overflowY: "auto",
       }}
     >
       {dockItems.map((item) => {
@@ -129,6 +145,91 @@ export function Dock() {
               {item.label}
             </span>
           </Link>
+        );
+      })}
+
+      {/* Divider */}
+      <div
+        style={{
+          width: "36px",
+          height: "1px",
+          backgroundColor: "var(--border)",
+          margin: "4px 0",
+          flexShrink: 0,
+        }}
+      />
+
+      {/* External project links */}
+      {projectItems.map((item) => {
+        const href = item.url || `http://${hostname}:${item.port}`;
+        const Icon = item.icon;
+
+        return (
+          <a
+            key={item.label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dock-item group relative"
+            style={{
+              width: "56px",
+              height: "56px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+              borderRadius: "8px",
+              backgroundColor: "transparent",
+              transition: "all 150ms ease",
+              position: "relative",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--surface-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          >
+            <Icon
+              style={{
+                width: "22px",
+                height: "22px",
+                color: "#60a5fa",
+                strokeWidth: 2,
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "9px",
+                fontWeight: 500,
+                color: "#60a5fa",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "52px",
+              }}
+            >
+              {item.label}
+            </span>
+
+            {/* Tooltip */}
+            <span
+              className="absolute left-[72px] top-1/2 -translate-y-1/2 px-3 py-2 rounded-lg text-sm whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
+              style={{
+                backgroundColor: "var(--surface-elevated)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                fontWeight: 500,
+              }}
+            >
+              {item.label} ↗
+            </span>
+          </a>
         );
       })}
     </aside>

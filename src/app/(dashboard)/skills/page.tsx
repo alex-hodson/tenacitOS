@@ -103,7 +103,7 @@ export default function SkillsPage() {
             color: "var(--text-secondary)",
           }}
         >
-          Skills disponibles en el sistema OpenClaw
+          Skills available in the OpenClaw system
         </p>
       </div>
 
@@ -502,7 +502,7 @@ function SkillDetailModal({ skill, onClose }: { skill: Skill; onClose: () => voi
               </p>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <div className="badge-positive">{skill.source}</div>
-                <div className="badge-info">{skill.fileCount} archivos</div>
+                <div className="badge-info">{skill.fileCount} files</div>
                 {skill.agents && skill.agents.length > 0 && skill.agents.map((agent) => (
                   <div
                     key={agent}

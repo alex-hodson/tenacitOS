@@ -55,7 +55,7 @@ export default function FilesPage() {
           File Browser
         </h1>
         <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--text-secondary)" }}>
-          Navega por los workspaces y archivos de los agentes
+          Browse agent workspaces and files
         </p>
       </div>
 
@@ -70,6 +70,7 @@ export default function FilesPage() {
       >
         {/* ── LEFT SIDEBAR: Workspace list ─────────────────────────────────── */}
         <aside
+          className="files-sidebar"
           style={{
             width: "220px",
             flexShrink: 0,
@@ -239,7 +240,7 @@ export default function FilesPage() {
                 fontSize: "14px",
               }}
             >
-              Selecciona un workspace para explorar sus archivos
+              Select a workspace to explore its files
             </div>
           )}
         </main>

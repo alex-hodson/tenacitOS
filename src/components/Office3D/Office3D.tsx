@@ -2,10 +2,10 @@
 
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sky, Environment } from '@react-three/drei';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Vector3 } from 'three';
 import { AGENTS, DEFAULT_AGENT_STATE } from './agentsConfig';
-import type { AgentState } from './agentsConfig';
+import type { AgentState, AgentConfig } from './agentsConfig';
 import AgentDesk from './AgentDesk';
 import Floor from './Floor';
 import Walls from './Walls';
@@ -19,18 +19,89 @@ import WallClock from './WallClock';
 import FirstPersonControls from './FirstPersonControls';
 import MovingAvatar from './MovingAvatar';
 
+interface LiveAgent {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  role: string;
+  currentTask: string;
+  isActive: boolean;
+}
+
 export default function Office3D() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [interactionModal, setInteractionModal] = useState<string | null>(null);
   const [controlMode, setControlMode] = useState<'orbit' | 'fps'>('orbit');
   const [avatarPositions, setAvatarPositions] = useState<Map<string, any>>(new Map());
+  const [liveAgents, setLiveAgents] = useState<LiveAgent[]>([]);
+  const [agentConfigs, setAgentConfigs] = useState<AgentConfig[]>(AGENTS);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Agent states — initialized with defaults for all configured agents
-  const [agentStates] = useState<Record<string, AgentState>>(
-    Object.fromEntries(
-      AGENTS.map(a => [a.id, { ...DEFAULT_AGENT_STATE, id: a.id, status: 'working', currentTask: 'Running tasks...', model: 'opus' }])
-    )
-  );
+  // Fetch live agent data from the office API
+  useEffect(() => {
+    const fetchAgentData = async () => {
+      try {
+        const response = await fetch('/api/office');
+        const data = await response.json();
+        
+        if (data.agents) {
+          setLiveAgents(data.agents);
+          
+          // Create agent configs with live data, using grid positioning for multiple agents
+          const updatedConfigs = data.agents.map((agent: LiveAgent, index: number) => {
+            // Grid layout for multiple agents
+            const gridSize = Math.ceil(Math.sqrt(data.agents.length));
+            const row = Math.floor(index / gridSize);
+            const col = index % gridSize;
+            const spacing = 4;
+            const offsetX = (col - (gridSize - 1) / 2) * spacing;
+            const offsetZ = (row - (gridSize - 1) / 2) * spacing;
+            
+            return {
+              id: agent.id,
+              name: agent.name,
+              emoji: agent.emoji,
+              position: [offsetX, 0, offsetZ] as [number, number, number],
+              color: agent.color,
+              role: agent.role,
+            };
+          });
+          
+          setAgentConfigs(updatedConfigs);
+        }
+      } catch (error) {
+        console.error('Failed to fetch agent data:', error);
+        // Fallback to static config if API fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAgentData();
+    
+    // Refresh data every 10 seconds
+    const interval = setInterval(fetchAgentData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Convert live agent data to agent states format
+  const getAgentState = (agentId: string): AgentState => {
+    const liveAgent = liveAgents.find(a => a.id === agentId);
+    if (!liveAgent) {
+      return { ...DEFAULT_AGENT_STATE, id: agentId };
+    }
+    
+    return {
+      id: agentId,
+      status: liveAgent.isActive ? 'working' : 'idle',
+      currentTask: liveAgent.currentTask,
+      model: liveAgent.isActive ? 'opus' : 'sonnet',
+      tokensPerHour: liveAgent.isActive ? Math.floor(Math.random() * 1000) : 0,
+      tasksInQueue: liveAgent.isActive ? Math.floor(Math.random() * 5) : 0,
+      uptime: Math.floor(Math.random() * 30), // Mock uptime in days
+    };
+  };
 
   const handleDeskClick = (agentId: string) => {
     setSelectedAgent(agentId);
@@ -60,10 +131,10 @@ export default function Office3D() {
     setAvatarPositions(prev => new Map(prev).set(id, position));
   };
 
-  // Definir obstáculos (muebles)
+  // Definir obstáculos (muebles) - use live agent configs
   const obstacles = [
-    // Escritorios (6)
-    ...AGENTS.map(agent => ({
+    // Desks - use live agent positions
+    ...agentConfigs.map(agent => ({
       position: new Vector3(agent.position[0], 0, agent.position[2]),
       radius: 1.5
     })),
@@ -107,23 +178,31 @@ export default function Office3D() {
           {/* Paredes */}
           <Walls />
 
-          {/* Escritorios de agentes (sin avatares) */}
-          {AGENTS.map((agent) => (
+          {/* Loading indicator */}
+          {isLoading && (
+            <mesh position={[0, 2, 0]}>
+              <sphereGeometry args={[0.5, 32, 32]} />
+              <meshStandardMaterial color="#FFCC00" />
+            </mesh>
+          )}
+
+          {/* Agent desks (no avatars) */}
+          {agentConfigs.map((agent) => (
             <AgentDesk
               key={agent.id}
               agent={agent}
-              state={agentStates[agent.id] || { ...DEFAULT_AGENT_STATE, id: agent.id }}
+              state={getAgentState(agent.id)}
               onClick={() => handleDeskClick(agent.id)}
               isSelected={selectedAgent === agent.id}
             />
           ))}
 
           {/* Avatares móviles */}
-          {AGENTS.map((agent) => (
+          {agentConfigs.map((agent) => (
             <MovingAvatar
               key={`avatar-${agent.id}`}
               agent={agent}
-              state={agentStates[agent.id] || { ...DEFAULT_AGENT_STATE, id: agent.id }}
+              state={getAgentState(agent.id)}
               officeBounds={{ minX: -8, maxX: 8, minZ: -7, maxZ: 7 }}
               obstacles={obstacles}
               otherAvatarPositions={avatarPositions}
@@ -174,8 +253,8 @@ export default function Office3D() {
       {/* Panel lateral cuando se selecciona un agente */}
       {selectedAgent && (
         <AgentPanel
-          agent={AGENTS.find(a => a.id === selectedAgent)!}
-          state={agentStates[selectedAgent] || { ...DEFAULT_AGENT_STATE, id: selectedAgent }}
+          agent={agentConfigs.find(a => a.id === selectedAgent)!}
+          state={getAgentState(selectedAgent)}
           onClose={handleClosePanel}
         />
       )}
@@ -246,21 +325,33 @@ export default function Office3D() {
                   <p className="text-lg">⚡ Agent activity and energy levels</p>
                   <div className="bg-gray-800 p-4 rounded border border-gray-700 space-y-3">
                     <div>
-                      <p className="text-sm text-gray-400">Tokens consumed today:</p>
-                      <p className="text-2xl font-bold text-yellow-400">47,000</p>
+                      <p className="text-sm text-gray-400">Total agents:</p>
+                      <p className="text-2xl font-bold text-blue-400">{liveAgents.length}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-400">Active agents:</p>
-                      <p className="text-2xl font-bold text-green-400">3 / 6</p>
+                      <p className="text-2xl font-bold text-green-400">
+                        {liveAgents.filter(a => a.isActive).length} / {liveAgents.length}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400">System uptime:</p>
-                      <p className="text-2xl font-bold text-blue-400">12h 34m</p>
+                      <p className="text-sm text-gray-400">Idle/Sleeping agents:</p>
+                      <p className="text-2xl font-bold text-gray-400">
+                        {liveAgents.filter(a => !a.isActive).length}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 italic">
-                    This would show real-time agent mood/productivity metrics
-                  </p>
+                  <div className="bg-gray-800 p-4 rounded border border-gray-700 mt-4">
+                    <p className="text-sm text-gray-400 mb-2">Current tasks:</p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {liveAgents.map(agent => (
+                        <div key={agent.id} className="text-xs">
+                          <span className="text-yellow-400">{agent.emoji} {agent.name}:</span>
+                          <span className="text-gray-300 ml-2">{agent.currentTask}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
             </div>
@@ -278,23 +369,30 @@ export default function Office3D() {
       {/* Controles UI overlay */}
       <div className="absolute top-4 left-4 bg-black/70 text-white p-4 rounded-lg backdrop-blur-sm">
         <h2 className="text-lg font-bold mb-2">🏢 The Office</h2>
-        <div className="text-sm space-y-1 mb-3">
-          <p><strong>Mode: {controlMode === 'orbit' ? '🖱️ Orbit' : '🎮 FPS'}</strong></p>
-          {controlMode === 'orbit' ? (
-            <>
-              <p>🖱️ Mouse: Rotate view</p>
-              <p>🔄 Scroll: Zoom</p>
-              <p>👆 Click: Select</p>
-            </>
-          ) : (
-            <>
-              <p>Click to lock cursor</p>
-              <p>WASD/Arrows: Move</p>
-              <p>Space: Up | Shift: Down</p>
-              <p>Mouse: Look | ESC: Unlock</p>
-            </>
-          )}
-        </div>
+        {isLoading ? (
+          <div className="text-sm mb-3">
+            <p className="text-yellow-400">🔄 Loading live data...</p>
+          </div>
+        ) : (
+          <div className="text-sm space-y-1 mb-3">
+            <p><strong>Agents: {liveAgents.filter(a => a.isActive).length}/{liveAgents.length} active</strong></p>
+            <p><strong>Mode: {controlMode === 'orbit' ? '🖱️ Orbit' : '🎮 FPS'}</strong></p>
+            {controlMode === 'orbit' ? (
+              <>
+                <p>🖱️ Mouse: Rotate view</p>
+                <p>🔄 Scroll: Zoom</p>
+                <p>👆 Click: Select</p>
+              </>
+            ) : (
+              <>
+                <p>Click to lock cursor</p>
+                <p>WASD/Arrows: Move</p>
+                <p>Space: Up | Shift: Down</p>
+                <p>Mouse: Look | ESC: Unlock</p>
+              </>
+            )}
+          </div>
+        )}
         <button
           onClick={() => setControlMode(controlMode === 'orbit' ? 'fps' : 'orbit')}
           className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-3 rounded text-xs transition-colors"

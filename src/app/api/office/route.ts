@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFileSync, statSync, readdirSync } from "fs";
 import { join } from "path";
+import { execSync } from "child_process";
 
 export const dynamic = "force-dynamic";
 
@@ -58,40 +59,19 @@ interface AgentSession {
   createdAt?: string;
 }
 
-async function getAgentStatusFromGateway(): Promise<
+async function getAgentStatusFromSessions(): Promise<
   Record<string, { isActive: boolean; currentTask: string; lastSeen: number }>
 > {
   try {
-    const configPath = (process.env.OPENCLAW_DIR || "/root/.openclaw") + "/openclaw.json";
-    const config = JSON.parse(readFileSync(configPath, "utf-8"));
-    const gatewayToken = config.gateway?.auth?.token;
-
-    if (!gatewayToken) {
-      console.warn("No gateway token found");
-      return {};
-    }
-
-    // Try to fetch sessions from gateway
-    const response = await fetch("http://localhost:18789/api/sessions", {
-      headers: {
-        Authorization: `Bearer ${gatewayToken}`,
-      },
-      signal: AbortSignal.timeout(2000), // 2s timeout
+    // Use the working OpenClaw CLI command
+    const output = execSync('openclaw sessions --json --active 60', {
+      timeout: 10000,
+      encoding: 'utf-8',
     });
 
-    if (!response.ok) {
-      console.warn("Gateway returned non-OK status:", response.status);
-      return {};
-    }
-
-    // Verify Content-Type before parsing JSON
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      console.warn("Gateway returned non-JSON response:", contentType);
-      return {};
-    }
-
-    const sessions = (await response.json()) as AgentSession[];
+    const data = JSON.parse(output);
+    const sessions = data.sessions || [];
+    
     const agentStatus: Record<
       string,
       { isActive: boolean; currentTask: string; lastSeen: number }
@@ -100,21 +80,32 @@ async function getAgentStatusFromGateway(): Promise<
     for (const session of sessions) {
       if (!session.agentId) continue;
 
-      const lastActivity = session.lastActivity
-        ? new Date(session.lastActivity).getTime()
-        : 0;
+      const lastActivity = session.updatedAt || 0;
       const now = Date.now();
       const minutesAgo = (now - lastActivity) / 1000 / 60;
 
       let status = "SLEEPING";
       let currentTask = "zzZ...";
 
+      // Determine task based on session type
+      if (session.kind === 'direct' && session.key.includes('subagent')) {
+        currentTask = "Running subagent";
+      } else if (session.kind === 'direct' && session.key.includes('cron')) {
+        currentTask = "Running cron job";
+      } else if (session.kind === 'group') {
+        currentTask = "In chat session";
+      } else {
+        currentTask = "Agent active";
+      }
+
       if (minutesAgo < 5) {
         status = "ACTIVE";
-        currentTask = session.label || "Working on task...";
       } else if (minutesAgo < 30) {
         status = "IDLE";
-        currentTask = session.label || "Idle...";
+        currentTask = "Recent activity";
+      } else {
+        status = "SLEEPING";
+        currentTask = "zzZ...";
       }
 
       // Keep most recent activity per agent
@@ -132,7 +123,7 @@ async function getAgentStatusFromGateway(): Promise<
 
     return agentStatus;
   } catch (error) {
-    console.warn("Failed to fetch from gateway:", error);
+    console.warn("Failed to fetch sessions via CLI:", error);
     return {};
   }
 }
@@ -186,8 +177,8 @@ export async function GET() {
     const configPath = (process.env.OPENCLAW_DIR || "/root/.openclaw") + "/openclaw.json";
     const config = JSON.parse(readFileSync(configPath, "utf-8"));
 
-    // Try gateway first, fallback to file-based
-    const gatewayStatus = await getAgentStatusFromGateway();
+    // Try CLI sessions first, fallback to file-based
+    const sessionsStatus = await getAgentStatusFromSessions();
 
     // Support both explicit list and implicit single-agent setups
     const agentList: any[] = config.agents?.list || [];
@@ -208,8 +199,8 @@ export async function GET() {
         role: "Agent",
       };
 
-      // Get status from gateway, or fallback to files
-      let status = gatewayStatus[agent.id];
+      // Get status from sessions, or fallback to files
+      let status = sessionsStatus[agent.id];
       if (!status) {
         status = getAgentStatusFromFiles(agent.id, agent.workspace);
       }

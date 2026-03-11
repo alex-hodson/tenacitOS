@@ -453,3 +453,60 @@ code, pre, .font-mono {
   font-size: 12px;
   color: var(--warning);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Shrink dock to bottom tab bar on mobile */
+  .dock {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 32px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px 8px !important;
+    gap: 2px !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dock .dock-item {
+    width: 44px !important;
+    height: 48px !important;
+    min-width: 44px !important;
+    flex-shrink: 0;
+  }
+
+  .dock .dock-item span.absolute {
+    display: none !important;
+  }
+
+  /* TopBar: full width on mobile */
+  .top-bar {
+    left: 0 !important;
+  }
+
+  /* Sessions page: responsive grid + padding */
+  .sessions-summary-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .sessions-page {
+    padding: 1rem !important;
+  }
+
+  /* Files page: hide workspace sidebar on mobile (only 1 workspace) */
+  .files-sidebar {
+    display: none !important;
+  }
+
+  /* Memory page: same pattern */
+  .memory-sidebar {
+    display: none !important;
+  }
+}

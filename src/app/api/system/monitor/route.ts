@@ -60,7 +60,7 @@ function normalizePm2Status(status: string): string {
 
 // Friendly display names for PM2 process names
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  "mission-control": "Mission Control – Tenacitas Dashboard",
+  "mission-control": "Mission Control – Bort Dashboard",
   classvault: "ClassVault – LMS Platform",
   "content-vault": "Content Vault – Draft Management Webapp",
   "postiz-simple": "Postiz – Social Media Scheduler",
@@ -311,7 +311,7 @@ export async function GET() {
             : [
                 { ip: "100.122.105.85", hostname: "srv1328267", os: "linux", online: true },
                 { ip: "100.106.86.52", hostname: "iphone182", os: "iOS", online: true },
-                { ip: "100.72.14.113", hostname: "macbook-pro-de-carlos", os: "macOS", online: true },
+                { ip: "100.72.14.113", hostname: "macbook-pro-de-alex", os: "macOS", online: true },
               ],
       },
       firewall: {

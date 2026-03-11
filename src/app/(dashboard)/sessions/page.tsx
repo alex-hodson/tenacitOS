@@ -650,7 +650,7 @@ export default function SessionsPage() {
 
   return (
     <>
-      <div style={{ padding: "1.5rem 2rem", minHeight: "100vh" }}>
+      <div className="sessions-page" style={{ padding: "1.5rem 2rem", minHeight: "100vh" }}>
         {/* Header */}
         <div style={{ marginBottom: "1.5rem" }}>
           <h1
@@ -672,6 +672,7 @@ export default function SessionsPage() {
 
         {/* Summary cards */}
         <div
+          className="sessions-summary-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",

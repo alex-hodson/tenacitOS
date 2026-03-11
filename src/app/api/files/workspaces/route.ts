@@ -51,10 +51,10 @@ export async function GET() {
       const mainInfo = getAgentInfo(mainWorkspace);
       workspaces.push({
         id: 'workspace',
-        name: 'Workspace Principal',
+        name: 'Main Workspace',
         emoji: mainInfo?.emoji || '🦝',
         path: mainWorkspace,
-        agentName: mainInfo?.name || 'Tenacitas',
+        agentName: mainInfo?.name || 'Bort',
       });
     }
     

@@ -33,7 +33,7 @@ export function TopBar() {
         style={{
           position: "fixed",
           top: 0,
-          left: "68px", // Width of dock
+          left: "68px", // Width of dock — overridden to 0 on mobile via CSS
           right: 0,
           height: "48px",
           backgroundColor: "var(--surface)",
@@ -139,7 +139,7 @@ export function TopBar() {
                   color: "var(--text-primary)",
                 }}
               >
-                C
+                A
               </span>
             </div>
             {/* Name */}
@@ -151,7 +151,7 @@ export function TopBar() {
                 color: "var(--text-secondary)",
               }}
             >
-              Carlos
+              Alex
             </span>
           </div>
         </div>

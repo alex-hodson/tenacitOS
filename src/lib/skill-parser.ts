@@ -26,20 +26,9 @@ interface FrontMatter {
   };
 }
 
-interface ConfiguredSkill {
-  name: string;
-  location: string;
-}
-
-interface SkillsConfig {
-  systemSkillsPath?: string;
-  workspaceSkillsPath?: string;
-  skills: ConfiguredSkill[];
-}
-
-const CONFIG_PATH = path.join(process.cwd(), 'data', 'configured-skills.json');
-const DEFAULT_SYSTEM_PATH = '/usr/lib/node_modules/openclaw/skills';
-const DEFAULT_WORKSPACE_PATH = (process.env.OPENCLAW_DIR || '/root/.openclaw') + '/workspace-infra/skills';
+const OPENCLAW_DIR = process.env.OPENCLAW_DIR || '/home/ahodson/.openclaw';
+const SYSTEM_SKILLS_PATH = '/home/ahodson/.npm-global/lib/node_modules/openclaw/skills';
+const WORKSPACE_SKILLS_PATH = path.join(OPENCLAW_DIR, 'workspace', 'skills');
 
 /**
  * Parse SKILL.md front matter (YAML between --- delimiters)
@@ -138,7 +127,7 @@ function countFiles(skillPath: string): { count: number; files: string[] } {
 /**
  * Parse a single skill from its directory
  */
-export function parseSkill(skillPath: string, skillName: string, agents: string[] = []): SkillInfo | null {
+export function parseSkill(skillPath: string, skillName: string, source: 'workspace' | 'system', agents: string[] = []): SkillInfo | null {
   const skillMdPath = path.join(skillPath, 'SKILL.md');
   
   if (!fs.existsSync(skillMdPath)) {
@@ -149,8 +138,6 @@ export function parseSkill(skillPath: string, skillName: string, agents: string[
     const content = fs.readFileSync(skillMdPath, 'utf-8');
     const { frontMatter, body } = parseFrontMatter(content);
     const { count, files } = countFiles(skillPath);
-    
-    const source = skillPath.includes('/workspace') ? 'workspace' : 'system';
     
     return {
       id: skillName,
@@ -171,105 +158,64 @@ export function parseSkill(skillPath: string, skillName: string, agents: string[
 }
 
 /**
- * Build a map of skill-name -> [agentId] by scanning all workspace skill dirs
+ * Build a map of skill-name -> [agentId] by scanning workspace skill dirs
+ * For single-agent setups, this will map skills to ['main']
  */
 function buildAgentSkillMap(): Map<string, string[]> {
   const map = new Map<string, string[]>();
-  const openclawDir = process.env.OPENCLAW_DIR || '/root/.openclaw';
 
-  // Agent workspaces: workspace, workspace-infra, workspace-social, etc.
-  // Read from openclaw.json if possible
-  let agentList: Array<{ id: string; workspace: string }> = [];
+  // For single-agent setup, just check the main workspace skills directory
   try {
-    const openclawConfig = JSON.parse(fs.readFileSync(path.join(openclawDir, 'openclaw.json'), 'utf-8'));
-    agentList = (openclawConfig?.agents?.list || []).map((a: any) => ({
-      id: a.id,
-      workspace: a.workspace || path.join(openclawDir, 'workspace'),
-    }));
-  } catch {
-    // Fallback: scan directories
-    try {
-      const dirs = fs.readdirSync(openclawDir, { withFileTypes: true });
-      for (const d of dirs) {
-        if (d.isDirectory() && d.name.startsWith('workspace')) {
-          const agentId = d.name === 'workspace' ? 'main' : d.name.replace('workspace-', '');
-          agentList.push({ id: agentId, workspace: path.join(openclawDir, d.name) });
-        }
-      }
-    } catch {}
-  }
-
-  for (const { id, workspace } of agentList) {
-    const skillsDir = path.join(workspace, 'skills');
-    try {
-      if (!fs.existsSync(skillsDir)) continue;
-      const skillDirs = fs.readdirSync(skillsDir, { withFileTypes: true });
+    if (fs.existsSync(WORKSPACE_SKILLS_PATH)) {
+      const skillDirs = fs.readdirSync(WORKSPACE_SKILLS_PATH, { withFileTypes: true });
       for (const d of skillDirs) {
         if (d.isDirectory()) {
-          const existing = map.get(d.name) || [];
-          existing.push(id);
-          map.set(d.name, existing);
+          map.set(d.name, ['main']);
         }
       }
-    } catch {}
+    }
+  } catch (error) {
+    console.warn('Error scanning workspace skills:', error);
   }
 
   return map;
 }
 
 /**
- * Load configured skills from config file
- */
-function loadConfiguredSkills(): ConfiguredSkill[] {
-  try {
-    const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config: SkillsConfig = JSON.parse(content);
-    return config.skills || [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Scan only configured skills and return parsed skills
+ * Scan all skills from both system and workspace directories
  */
 export function scanAllSkills(): SkillInfo[] {
   const skills: SkillInfo[] = [];
   
   try {
-    const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    const config: SkillsConfig = JSON.parse(content);
-    
-    const systemPath = config.systemSkillsPath || DEFAULT_SYSTEM_PATH;
-    const workspacePath = config.workspaceSkillsPath || DEFAULT_WORKSPACE_PATH;
-
-    // Build agent->skills map for workspace skills
     const agentSkillMap = buildAgentSkillMap();
     
-    for (const { name, location } of config.skills) {
-      let skillPath: string;
-      
-      // Resolve path based on location type
-      if (location === 'system') {
-        skillPath = path.join(systemPath, name);
-      } else if (location === 'workspace') {
-        skillPath = path.join(workspacePath, name);
-      } else {
-        // Full path provided
-        skillPath = location;
+    // Scan system skills
+    if (fs.existsSync(SYSTEM_SKILLS_PATH)) {
+      const systemSkillDirs = fs.readdirSync(SYSTEM_SKILLS_PATH, { withFileTypes: true });
+      for (const dir of systemSkillDirs) {
+        if (dir.isDirectory()) {
+          const skillPath = path.join(SYSTEM_SKILLS_PATH, dir.name);
+          const skill = parseSkill(skillPath, dir.name, 'system', []);
+          if (skill) {
+            skills.push(skill);
+          }
+        }
       }
-      
-      if (!fs.existsSync(skillPath)) {
-        console.warn(`Skill not found: ${name} at ${skillPath}`);
-        continue;
-      }
-
-      // Determine which agents have this skill
-      const agents = agentSkillMap.get(name) || [];
-      
-      const skill = parseSkill(skillPath, name, agents);
-      if (skill) {
-        skills.push(skill);
+    }
+    
+    // Scan workspace skills
+    if (fs.existsSync(WORKSPACE_SKILLS_PATH)) {
+      const workspaceSkillDirs = fs.readdirSync(WORKSPACE_SKILLS_PATH, { withFileTypes: true });
+      for (const dir of workspaceSkillDirs) {
+        if (dir.isDirectory()) {
+          const skillPath = path.join(WORKSPACE_SKILLS_PATH, dir.name);
+          const agents = agentSkillMap.get(dir.name) || ['main'];
+          const skill = parseSkill(skillPath, dir.name, 'workspace', agents);
+          if (skill) {
+            skills.push(skill);
+          }
+        }
       }
     }
     

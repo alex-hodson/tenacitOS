@@ -28,6 +28,9 @@ import {
   GitFork,
   SquareTerminal,
   History,
+  GraduationCap,
+  ExternalLink,
+  MapPin,
 } from "lucide-react";
 import { getAgentDisplayName } from "@/config/branding";
 
@@ -255,6 +258,132 @@ export function Sidebar() {
             })}
           </ul>
         </nav>
+
+        {/* External Projects */}
+        <div 
+          className="py-4"
+          style={{ borderTop: "1px solid var(--border)", opacity: 0.6 }}
+        >
+          <h2 
+            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+            style={{ 
+              color: "var(--text-muted)",
+              fontFamily: "var(--font-heading)",
+            }}
+          >
+            Projects
+          </h2>
+          <ul className="space-y-0.5">
+            <li>
+              <a
+                href={`http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3100`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.backgroundColor = "var(--card-elevated)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <Users 
+                  className="w-5 h-5"
+                  style={{ color: "var(--accent)", opacity: 0.7 }}
+                />
+                <span className="text-sm">Hot Metal CRM</span>
+                <div
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--accent)", opacity: 0.5 }}
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                href={`http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:5174`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.backgroundColor = "var(--card-elevated)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <GraduationCap 
+                  className="w-5 h-5"
+                  style={{ color: "var(--accent)", opacity: 0.7 }}
+                />
+                <span className="text-sm">SAT Prep</span>
+                <div
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--accent)", opacity: 0.5 }}
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://funeralpriceguide.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.backgroundColor = "var(--card-elevated)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <ExternalLink 
+                  className="w-5 h-5"
+                  style={{ color: "var(--accent)", opacity: 0.7 }}
+                />
+                <span className="text-sm">Funeral Price Guide</span>
+                <div
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--accent)", opacity: 0.5 }}
+                />
+              </a>
+            </li>
+            <li>
+              <a
+                href={`http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3200`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.backgroundColor = "var(--card-elevated)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <MapPin 
+                  className="w-5 h-5"
+                  style={{ color: "var(--accent)", opacity: 0.7 }}
+                />
+                <span className="text-sm">Nebby</span>
+                <div
+                  className="ml-auto w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--accent)", opacity: 0.5 }}
+                />
+              </a>
+            </li>
+          </ul>
+        </div>
 
         {/* Footer */}
         <div
